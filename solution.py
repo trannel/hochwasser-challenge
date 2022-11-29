@@ -3,10 +3,9 @@ import pandas as pd
 import torch
 from torch import Tensor
 from torch import nn
-from torch import optim
 from torch.utils.data import Dataset, DataLoader
 
-from tools import select_features
+from tools import select_features, get_path
 
 
 # Now we need to load the unseen test data to make the prediction. Therefore, we will load the x_test file and convert it in the same way as before.
@@ -74,5 +73,7 @@ def create_solution(data_dir: str, scaler, batch_size: int, model, device):
     y_test_data.head()
 
     # Save to CSV file
-    y_test_data.to_csv(f"{data_dir}/solution.csv", index=False)
+    path = get_path(f"{data_dir}/solution.csv")
+
+    y_test_data.to_csv(path, index=False)
 

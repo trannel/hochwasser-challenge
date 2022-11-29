@@ -4,6 +4,8 @@
 # `pip install -r requirements.txt`
 
 import random
+
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 
 from analysis import *
@@ -14,12 +16,13 @@ from tools import *
 seed = 0xBEEF
 random.seed(seed)
 np.random.seed(seed)
+torch.manual_seed(seed)
 
 # Params
 batch_size = 32
-epochs = 5
+epochs = 14
 learning_rate = 0.001
-data_dir = "data" # Enter the path of your choice
+data_dir = "data"  # Enter the path of your choice
 train_filename = f"{data_dir}/x_train.csv"
 
 # Check for a GPU
@@ -74,7 +77,8 @@ val_loader = DataLoader(val_ds, shuffle=False, batch_size=batch_size)
 model = MLP(in_seq_len=48, in_dim=train_df.shape[1], out_seq_len=12, hidden_size=32).to(device)
 
 # train
-model = train(model=model, train_loader=train_loader, val_loader=val_loader, device=device, batch_size=batch_size, learning_rate=learning_rate, epochs=epochs)
+model = train(model=model, train_loader=train_loader, val_loader=val_loader, device=device, data_dir=data_dir,
+              batch_size=batch_size, learning_rate=learning_rate, epochs=epochs)
 
 # create solution
 create_solution(data_dir, scaler, batch_size, model, device)

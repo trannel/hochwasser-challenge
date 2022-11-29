@@ -1,11 +1,13 @@
+from typing import List
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
-from torch import Tensor
 from torch import nn
 from torch import optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
+import os
 
 from network import MLP
 
@@ -58,8 +60,8 @@ def periodizer(data: pd.DataFrame, date_format: str = 'day'):
         per_data = per_dataset.index.hour
         # Day has 24 hours
         day = 24
-        per_dataset['Day_sin'] = np.sin(per_data * 2 * np.pi/day)
-        per_dataset['Day_cos'] = np.cos(per_data * 2 * np.pi/day)
+        per_dataset['Day_sin'] = np.sin(per_data * 2 * np.pi / day)
+        per_dataset['Day_cos'] = np.cos(per_data * 2 * np.pi / day)
 
         # Show a small example of how the signal looks
         plt.plot(np.array(per_dataset['Day_sin'])[0:200])
@@ -74,8 +76,8 @@ def periodizer(data: pd.DataFrame, date_format: str = 'day'):
         # Year has 365 days
         year = 365
 
-        per_dataset['Year_sin'] = np.sin(per_data * 2 * np.pi/year)
-        per_dataset['Year_cos'] = np.cos(per_data * 2 * np.pi/year)
+        per_dataset['Year_sin'] = np.sin(per_data * 2 * np.pi / year)
+        per_dataset['Year_cos'] = np.cos(per_data * 2 * np.pi / year)
         # Show a small example of how the signal looks
         plt.plot(np.array(per_dataset['Year_sin'])[0:20000])
         plt.plot(np.array(per_dataset['Year_cos'])[0:20000])
@@ -84,10 +86,10 @@ def periodizer(data: pd.DataFrame, date_format: str = 'day'):
 
     else:
         print("Incorrect date_format given in. Has to be either 'day' or 'year'.")
-    return()
+    return ()
 
-
-def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, batch_size: int, learning_rate: float = 0.001,
+def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, data_dir, batch_size: int,
+          learning_rate: float = 0.001,
           epochs: int = 2) -> MLP:
     """
     Train Loop
@@ -98,13 +100,13 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
     @param epochs: number of training runs
     """
     loss_fct = nn.MSELoss()
-
     # initialize optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
     size_train_loader = len(train_loader.dataset)
+    train_mse= []
+    val_mse = []
     for epoch_i in range(epochs):
-
+        train_losses = []
         for batch_i, (x, y) in enumerate(train_loader):
             x, y = x.to(device), y.to(device)
             optimizer.zero_grad()
@@ -112,6 +114,7 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
             # forward pass, compute predicted y
             pred = model(x)
             loss = loss_fct(pred, y)
+            train_losses.append(loss.item())
 
             # backpropagation part
             loss.backward()
@@ -120,7 +123,8 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
 
             if batch_i % 200 == 0:
                 loss, current = loss.item(), batch_i * batch_size
-                print(f"{epoch_i:>2d} - [{current:>5d}/{size_train_loader:>5d}] MSE loss: {loss:>5f} ")
+                print(
+                    f"{epoch_i:>2d} - [{current:>5d}/{size_train_loader:>5d}] MSE loss: {loss:>5f} ")
 
         # validate on data which was not used to train the model
         val_losses = []
@@ -131,13 +135,34 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
                 val_loss = loss_fct(pred, y)
                 val_losses.append(val_loss.item())
 
+        train_losses = np.mean(np.array(train_losses))
         val_losses = np.mean(np.array(val_losses))
         print(
             "-" * 20 + "\n" +
-            f"Val MSE Loss {val_losses} Val RMSE Loss {np.sqrt(val_losses)}\n" +
+            f"Tra MSE Loss {train_losses} | Tra RMSE Loss {np.sqrt(train_losses)}\n" +
+            f"Val MSE Loss {val_losses} | Val RMSE Loss {np.sqrt(val_losses)}\n" +
             "-" * 20 + "\n"
         )
+        train_mse.append(train_losses)
+        val_mse.append(val_losses)
+    plot_loss(train_mse, val_mse, data_dir)
     return model
+
+
+def plot_loss(train_mse: List[np.ndarray], val_mse: List[np.ndarray], data_dir: str):
+    fig, axs = plt.subplots(2)
+    fig.suptitle('Model loss')
+    axs[0].plot(train_mse, label="train")
+    axs[0].plot(val_mse, label="validation")
+    axs[0].set_ylabel('MSE loss')
+    axs[0].set_xlabel('epoch')
+    axs[1].plot(np.sqrt(train_mse), label="train")
+    axs[1].plot(np.sqrt(val_mse), label="validation")
+    axs[1].set_ylabel('RMSE loss')
+    axs[1].set_xlabel('epoch')
+    fig.legend(['train', 'validation'], loc='upper left')
+    # fig.show()
+    fig.savefig(get_path(f"{data_dir}/model_loss.png"))
 
 
 def select_features(data: pd.DataFrame):
@@ -146,7 +171,20 @@ def select_features(data: pd.DataFrame):
     data = data.drop(columns=['date'], axis=0)
 
     # data = data["Water Level,  Kluserbrücke"].to_frame()
-    data['year_sin'] = np.sin(data.index.dayofyear * 2 * np.pi / 365)
+    data['year_sin'] = np.sin(data.index.hour * 2 * np.pi / 365)
+    data['day_sin'] = np.sin(data.index.dayofyear * 2 * np.pi / 24)
+    data['week_sin'] = np.sin(data.index.dayofweek * 2 * np.pi / 7)
+    # print("input features:" + data.columns, len(data.columns))
+    # exit()
     assert 'year_sin' in data.columns and "Water Level,  Kluserbrücke" in data.columns, "data must include the columns year_sin and Water Level,  Kluserbrücke"
     data = data[["year_sin", "Water Level,  Kluserbrücke"]]
     return data
+
+
+def get_path(path: str) -> str:
+    filename, extension = os.path.splitext(path)
+    counter = 1
+    while os.path.exists(path):
+        path = filename + str(counter) + extension
+        counter += 1
+    return path

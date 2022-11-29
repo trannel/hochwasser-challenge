@@ -1,8 +1,6 @@
 import torch
 from torch import Tensor
 from torch import nn
-from torch import optim
-from torch.utils.data import Dataset, DataLoader
 
 # Train Loop
 class MLP(nn.Module):
@@ -20,13 +18,12 @@ class MLP(nn.Module):
         self.in_dim = in_dim
 
         self.layers = nn.Sequential(
-            # nn.Linear(in_seq_len * in_dim, hidden_size),
             # nn.Sigmoid(),
-            # nn.Linear(hidden_size, out_seq_len),
-            nn.Linear(in_seq_len * in_dim, out_seq_len),
-            # nn.Linear(in_seq_len * in_dim, hidden_size),
+            # nn.Linear(in_seq_len * in_dim, out_seq_len),
+            nn.Linear(in_seq_len * in_dim, hidden_size),
+            # nn.Linear(hidden_size, hidden_size),
             # nn.Tanh(),
-            # nn.Linear(hidden_size, out_seq_len)
+            nn.Linear(hidden_size, out_seq_len),
         )
 
 
