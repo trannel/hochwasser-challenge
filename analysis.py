@@ -2,6 +2,76 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+# Create a window that shows 24 hours of observed data and the right dimensions to leave some space for the 6-hour prediction that is the task of this challenge. Ideally the function is flexible to be used easily on different intervals of our data.
+def data_win(data: pd.DataFrame, start: int, column: int, pred=None):
+    """
+    Function that takes in a dataframe of sensor readings (data), an index (sorted by time) to start from and a column of the
+    dataframe, given in as column number (0 to x). It returns a plot with 48 entries (24 hours)of observed data, 12 entries
+    (6 hours) of observed that had to be predicted and, in case that own predictions were fed in, a visualization of the 12
+    predictions entries.
+    """
+
+    windata = data.iloc[start:start + 48, column]
+    labels = data.iloc[start + 48:start + 48 + 12, column]
+
+    if pred is not None:
+        plt.plot(np.arange(start + 48, start + 60, 1), pred, label='Prediction')
+
+    plt.plot(np.arange(start, start + 48, 1), windata, label='Observed')
+    plt.plot(np.arange(start + 48, start + 60, 1), labels, label='Target')
+
+    plt.xlabel('Time [2/h)]')
+    plt.ylabel(f'{data.keys()[column]}')
+    plt.legend()
+
+    plt.show()
+
+
+
+# This function creates two day-wise periodic features (sin and cos) and adds those as columns to the dataframe.
+def periodizer(data: pd.DataFrame, date_format: str = 'day'):
+    """
+    Function to create a daily or yearly periodic feature out of a given dataset with a readable timestamp.
+    date_format takes in a string (either 'day' or 'year') to define what feature has to be created.
+    Output is an exemplary presentation of the periodic feature,
+    with x-axis = time [h] and y-axis shows a sine or cosine signal.
+    """
+
+    per_dataset = data
+
+    if date_format == 'day':
+        per_data = per_dataset.index.hour
+        # Day has 24 hours
+        day = 24
+        per_dataset['Day_sin'] = np.sin(per_data * 2 * np.pi / day)
+        per_dataset['Day_cos'] = np.cos(per_data * 2 * np.pi / day)
+
+        # Show a small example of how the signal looks
+        plt.plot(np.array(per_dataset['Day_sin'])[0:200])
+        plt.plot(np.array(per_dataset['Day_cos'])[0:200])
+
+        plt.show()
+        # return(per_dataset)
+
+    elif date_format == 'year':
+        per_data = per_dataset.index.day_of_year
+
+        # Year has 365 days
+        year = 365
+
+        per_dataset['Year_sin'] = np.sin(per_data * 2 * np.pi / year)
+        per_dataset['Year_cos'] = np.cos(per_data * 2 * np.pi / year)
+        # Show a small example of how the signal looks
+        plt.plot(np.array(per_dataset['Year_sin'])[0:20000])
+        plt.plot(np.array(per_dataset['Year_cos'])[0:20000])
+
+        plt.show()
+
+    else:
+        print("Incorrect date_format given in. Has to be either 'day' or 'year'.")
+    return ()
+
+
 # As a first step find a meaningful graphical representation to get a first grasp of the data and to detect anomalies or peculiarities that are easily observable.
 # E.g. create a boxplot of the sensors data given by the 6 different sensor available; Plot the values of each sensor against the time parameter to get an idea how the time series data looks like.
 # Could you possibly identify a time point in the data, where there was the Wupper-flood incident in 2021?

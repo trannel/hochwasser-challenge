@@ -1,17 +1,14 @@
-# Smarter Hochwasser Schutz - Challenge
-
-# Please first set up your environment and install all necessary packages with
-# `pip install -r requirements.txt`
-
 import random
 
-import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import torch
 from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader
 
-from analysis import *
-from datasets import *
-from solution import create_solution
-from tools import *
+# from analysis import *
+from test import create_solution
+from train import select_features, DataWindowDatasetFeatures, MLP, train
 
 seed = 0xBEEF
 random.seed(seed)
@@ -20,7 +17,7 @@ torch.manual_seed(seed)
 
 # Params
 batch_size = 32
-epochs = 14
+epochs = 20
 learning_rate = 0.001
 data_dir = "data"  # Enter the path of your choice
 train_filename = f"{data_dir}/x_train.csv"
@@ -30,7 +27,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"GPU: '{device}' available" if device.type == "cuda" else f"No GPU available, pytorch will run on your CPU.")
 
 raw_data = pd.read_csv(train_filename, sep=";", date_parser="date")
-# raw_data.head()
 
 # # Exploration
 # box_plotter(raw_data)
@@ -41,7 +37,7 @@ raw_data = pd.read_csv(train_filename, sep=";", date_parser="date")
 # test_pred = np.random.rand(12) + 18.5
 # data_win(raw_data, 0, 1, pred=test_pred)
 
-# Feature extraction
+# # Feature extraction
 # periodizer(raw_data, date_format='day')
 # periodizer(raw_data, date_format='year')
 
@@ -60,8 +56,6 @@ assert len(train_df) == 26522, "The train data size should be 26522"
 assert len(val_df) == 6631, "The validation data size should be 6631"
 train_ds = DataWindowDatasetFeatures(df=train_df, input_size=48, input_dim=train_df.shape[1], pred_size=12)
 val_ds = DataWindowDatasetFeatures(df=val_df, input_size=48, input_dim=val_df.shape[1], pred_size=12)
-assert train_ds[0][0].shape == torch.Size([48, 2]) and train_ds[0][1].shape == torch.Size([12]), \
-    f"Error the shapes of the dataset must have torch.Size([48, 2]) and torch.Size([12], but are {train_ds[0][0].shape} and {train_ds[0][1].shape}"
 
 idx = 0
 idx_input = 0
