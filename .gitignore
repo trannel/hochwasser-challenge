@@ -131,4 +131,5 @@ dmypy.json
 .idea
 *.ipynb
 *.zip
-data/old/
+/data/old/
+results.txt

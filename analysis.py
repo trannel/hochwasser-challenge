@@ -6,7 +6,7 @@ import pandas as pd
 def data_win(data: pd.DataFrame, start: int, column: int, pred=None):
     """
     Function that takes in a dataframe of sensor readings (data), an index (sorted by time) to start from and a column of the
-    dataframe, given in as column number (0 to x). It returns a plot with 48 entries (24 hours)of observed data, 12 entries
+    dataframe, given in as column number (0 to x). It returns a plot with 48 entries (24 hours) of observed data, 12 entries
     (6 hours) of observed that had to be predicted and, in case that own predictions were fed in, a visualization of the 12
     predictions entries.
     """
@@ -92,7 +92,7 @@ def box_plotter(data: pd.DataFrame):
 # Try to get some simple statistical values to describe the sensor data (e.g. mean, St. dev, quantiles).
 # Explore further: Are there 'impossible' or just extremely unlikely values/entries in your data frame (e.g. negative values, where only positives are allowed or NaN entries)?
 def describe(data: pd.DataFrame):
-    data.describe()
+    print(data.describe())
 
 
 # Add a function that checks all columns in a datafram for missing or negative values as those would clearly be erroneous
@@ -106,7 +106,7 @@ def data_check(dataset: pd.DataFrame):
     for i in range(dataset.shape[1]):
         data = np.array(dataset.iloc[0:, i])
         print(f'{dataset.keys()[i]}')
-        if np.isnan(data).any() == True:
+        if pd.isnull(data).any() == True:
             print('Data contains NaN at indices: ' + str(np.argwhere(np.isnan(data))))
         else:
             print('Data contains no NaN')

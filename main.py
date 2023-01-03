@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from test import create_solution
 from train import select_features, DataWindowDatasetFeatures, MLP, train
 
+# Set seed
 seed = 0xBEEF
 random.seed(seed)
 np.random.seed(seed)
@@ -19,7 +20,7 @@ torch.manual_seed(seed)
 batch_size = 32
 epochs = 20
 learning_rate = 0.001
-data_dir = "data"  # Enter the path of your choice
+data_dir = "data"
 train_filename = f"{data_dir}/x_train.csv"
 
 # Check for a GPU
@@ -27,23 +28,20 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"GPU: '{device}' available" if device.type == "cuda" else f"No GPU available, pytorch will run on your CPU.")
 
 raw_data = pd.read_csv(train_filename, sep=";", date_parser="date")
+data = select_features(raw_data)
 
 # # Exploration
-# box_plotter(raw_data)
-# describe(raw_data)
-# data_check(raw_data)
-# # Data visualization
-# multi_singleplot(raw_data)
+# box_plotter(data)
+# describe(data)
+# data_check(data)
+# Data visualization
+# multi_singleplot(data)
 # test_pred = np.random.rand(12) + 18.5
-# data_win(raw_data, 0, 1, pred=test_pred)
+# data_win(data, 0, 1, pred=test_pred)
 
 # # Feature extraction
-# periodizer(raw_data, date_format='day')
-# periodizer(raw_data, date_format='year')
-
-
-# Load the Data into a Pytorch Dataset
-data = select_features(raw_data)
+# periodizer(data, date_format='day')
+# periodizer(data, date_format='year')
 
 # Scale the inputs
 scaler = StandardScaler()

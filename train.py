@@ -45,11 +45,8 @@ class MLP(nn.Module):
         self.in_dim = in_dim
 
         self.layers = nn.Sequential(
-            # nn.Sigmoid(),
             # nn.Linear(in_seq_len * in_dim, out_seq_len),
             nn.Linear(in_seq_len * in_dim, hidden_size),
-            # nn.Linear(hidden_size, hidden_size),
-            # nn.Tanh(),
             nn.Linear(hidden_size, out_seq_len),
         )
 
@@ -105,10 +102,9 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.1)
             optimizer.step()
 
-            if batch_i % 200 == 0:
-                loss, current = loss.item(), batch_i * batch_size
-                print(
-                    f"{epoch_i:>2d} - [{current:>5d}/{size_train_loader:>5d}] MSE loss: {loss:>5f} ")
+            # if batch_i % 200 == 0:
+            #     loss, current = loss.item(), batch_i * batch_size
+                # print(f"{epoch_i:>2d} - [{current:>5d}/{size_train_loader:>5d}] MSE loss: {loss:>5f} ")
 
         # validate on data which was not used to train the model
         val_losses = []
@@ -122,10 +118,9 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
         train_losses = np.mean(np.array(train_losses))
         val_losses = np.mean(np.array(val_losses))
         print(
-            "-" * 20 + "\n" +
-            f"Tra MSE Loss {train_losses} | Tra RMSE Loss {np.sqrt(train_losses)}\n" +
-            f"Val MSE Loss {val_losses} | Val RMSE Loss {np.sqrt(val_losses)}\n" +
-            "-" * 20 + "\n"
+            f"{epoch_i} - Tra MSE Loss {train_losses}\n"
+            f"{epoch_i} - Val MSE Loss {val_losses}\n" +
+            "-" * 20
         )
         train_mse.append(train_losses)
         val_mse.append(val_losses)
@@ -134,18 +129,29 @@ def train(model: MLP, train_loader: DataLoader, val_loader: DataLoader, device, 
 
 
 def plot_loss(train_mse: List[np.ndarray], val_mse: List[np.ndarray], data_dir: str):
-    fig, axs = plt.subplots(2)
+    train = min(train_mse)
+    val = min(val_mse)
+    print(
+        f"xx - Tra MSE Loss {train} ({train_mse.index(train)})\n"+
+        f"xx - Val MSE Loss {val} ({val_mse.index(val)})\n"
+    )
+    with open(f"{data_dir}/results.txt", "a+") as file:
+        file.write(f"Tra MSE Loss {train} ({train_mse.index(train)})\n"+
+                   f"Val MSE Loss {val} ({val_mse.index(val)})\n"+
+                   "-"*20+"\n")
+    fig, axs = plt.subplots(1)
     fig.suptitle('Model loss')
-    axs[0].plot(train_mse, label="train")
-    axs[0].plot(val_mse, label="validation")
-    axs[0].set_ylabel('MSE loss')
-    axs[0].set_xlabel('epoch')
-    axs[1].plot(np.sqrt(train_mse), label="train")
-    axs[1].plot(np.sqrt(val_mse), label="validation")
-    axs[1].set_ylabel('RMSE loss')
-    axs[1].set_xlabel('epoch')
+    axs.plot(train_mse, label="train")
+    axs.plot(val_mse, label="validation")
+    axs.set_ylabel('MSE loss')
+    axs.set_xlabel('epoch')
+    # axs[1].plot(np.sqrt(train_mse), label="train")
+    # axs[1].plot(np.sqrt(val_mse), label="validation")
+    # axs[1].set_ylabel('RMSE loss')
+    # axs[1].set_xlabel('epoch')
     fig.legend(['train', 'validation'], loc='upper left')
     fig.savefig(get_path(f"{data_dir}/model_loss.png"))
+
 
 def get_path(path: str) -> str:
     filename, extension = os.path.splitext(path)
@@ -155,7 +161,21 @@ def get_path(path: str) -> str:
         counter += 1
     return path
 
+
+def clean_data(data: pd.DataFrame):
+    column_names = ["Discharge,  Stausee Beyenburg",
+                    "Water Level,  Stausee Beyenburg",
+                    "Precipitation,  Beyenburg",
+                    "Water Level,  Leimbach",
+                    "Precipitation,  Barmen Wupperverband Hauptverwaltung",
+                    "Water Level,  Kluserbrücke"]
+    # fix 1 value, that has a flipped sign; and potential other values
+    data[column_names] = data[column_names].apply(np.abs)
+    return data
+
+
 def select_features(data: pd.DataFrame):
+    data = clean_data(data)
     data.date = pd.to_datetime(data.date)
     data.index = data.date
     data = data.drop(columns=['date'], axis=0)
@@ -175,5 +195,5 @@ def select_features(data: pd.DataFrame):
         "Water Level,  Kluserbrücke",
     ]
     data = data[cols]
-    assert 'year_sin' in data.columns and "Water Level,  Kluserbrücke" in data.columns, "data must include the columns year_sin and Water Level,  Kluserbrücke"
+    assert "Water Level,  Kluserbrücke" in data.columns, "data must include the column Water Level,  Kluserbrücke"
     return data
